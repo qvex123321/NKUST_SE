@@ -34,9 +34,6 @@ public class Screen_Setting extends AppCompatActivity {
     SQLiteDatabase db;
 
     Button btn_account;
-    /*Button btn_fixedIncome;
-    Button btn_fixedBill;
-    Button btn_bill;*/
     Button btn_save;
 
     ListView itlist_account;
@@ -58,58 +55,28 @@ public class Screen_Setting extends AppCompatActivity {
 
         settingvalue = new ContentValues();
         btn_account = (Button)findViewById(R.id.btn_account);
-        /*btn_fixedIncome = (Button)findViewById(R.id.btn_fixedIncome);
-        btn_fixedBill = (Button)findViewById(R.id.btn_fixedBill);
-        btn_bill = (Button)findViewById(R.id.btn_bill);*/
         btn_save = (Button)findViewById(R.id.btn_save);
-
         itlist_account = (ListView)findViewById(R.id.itlist_account);
-
-
-        settingCursor = db.query("tb_setting",null,null,null,null,null,null);  //查詢tb_setting所有資料
-        Log.e("TAG","tb_setting裡有"+settingCursor.getCount()+"筆資料");
-        settingCursor = db.query("tb_account",null,null,null,null,null,null);  //查詢tb_account所有資料
-        Log.e("TAG","tb_account裡有"+settingCursor.getCount()+"筆資料");
 
         show_account_list();
 
         btn_account.setOnClickListener(new View.OnClickListener() {  //新增帳戶
             @Override
             public void onClick(View v) {      //新增帳戶
-                showdialog(R.layout.dialog_account,1);
+                showdialog(R.layout.dialog_account);
             }
         });
 
-        /*btn_fixedIncome.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showdialog(R.layout.dialog_fixedincome,2);
-            }
-        });
-
-        btn_fixedBill.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showdialog(R.layout.dialog_fixedbill,3);
-            }
-        });
-
-        btn_bill.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showdialog(R.layout.dialog_bill,4);
-            }
-        });*/
 
         btn_save.setOnClickListener(new View.OnClickListener() {   //儲存鍵
             @Override
             public void onClick(View v) {
-                settingCursor = db.query("tb_account",null,null,null,null,null,null);
-                if(settingCursor.getCount() == 0){
-                    Toast toast = Toast.makeText(Screen_Setting.this,
-                            "請新增至少一筆帳戶資料!", Toast.LENGTH_LONG);
-                    //顯示Toast
-                    toast.show();
+                settingCursor = db.query("tb_setting",null,null,null,null,null,null);  //查詢tb_setting所有資料
+
+                if(settingCursor.getCount() == 0){  //須有一筆帳戶資料以上才能進到主畫面
+
+                    show_toast("請新增至少一筆帳戶資料");
+
                 }else{
                     final Intent mainIntent = new Intent(Screen_Setting.this,Screen_Main1.class);
                     startActivity(mainIntent);
@@ -120,7 +87,7 @@ public class Screen_Setting extends AppCompatActivity {
 
         itlist_account.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {  //點下帳戶列表的某一個item 可進行修改及刪除
 
                 final TextView account_list_id = (TextView) view.findViewById(R.id.account_list_id);            //list item 裡text的資料
                 final TextView account_list_name = (TextView) view.findViewById(R.id.account_list_name);
@@ -136,21 +103,26 @@ public class Screen_Setting extends AppCompatActivity {
                 final EditText account_money = EntryView.findViewById(R.id.account_money);
 
                 account_name.setText(account_list_name.getText().toString());
+                account_name.setFocusable(false);  //將名稱的EditText設為不可編輯
                 account_money.setText(account_list_money.getText().toString());
 
                 dialog.setPositiveButton("確認", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        settingvalue.put("帳戶名稱",account_name.getText().toString());
-                        settingvalue.put("金額",account_money.getText().toString());
-                        db.update("tb_account",settingvalue,"_id" + "=" + account_list_id.getText().toString(),null);
-                        show_account_list();
+
+                        //需判斷金額是否為空
+                        if(account_money.getText().toString().isEmpty()){
+                            show_toast("請輸入金額!");
+                        }else{
+                            DH.updateData(Integer.parseInt(account_list_id.getText().toString()),account_name.getText().toString(),account_money.getText().toString());
+                            show_account_list();
+                        }
                     }
                 });
                 dialog.setNegativeButton("刪除", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        db.delete("tb_account","_id" + "=" + account_list_id.getText().toString(),null);
+                        db.delete("tb_setting","_id" + "=" + account_list_id.getText().toString(),null);
                         show_account_list();
                     }
                 });
@@ -160,7 +132,7 @@ public class Screen_Setting extends AppCompatActivity {
         });
     }
 
-    private void showdialog(int layout,final int x){  //x判斷是哪個按鈕按下
+    private void showdialog(int layout){
         LayoutInflater inflater = LayoutInflater.from(Screen_Setting.this);
         final View EntryView = inflater.inflate(layout,null);
 
@@ -170,60 +142,27 @@ public class Screen_Setting extends AppCompatActivity {
         final EditText account_name = EntryView.findViewById(R.id.account_name);
         final EditText account_money = EntryView.findViewById(R.id.account_money);  //找dialog畫面上的edittext
 
-        /*final EditText income_name = EntryView.findViewById(R.id.income_name);
-        final EditText income_account = EntryView.findViewById(R.id.income_account);
-        final EditText income_money = EntryView.findViewById(R.id.income_money);
-        final Spinner income_count = EntryView.findViewById(R.id.income_count);
-        final EditText payday = EntryView.findViewById(R.id.payday);
-
-        final EditText fixedbill_name = EntryView.findViewById(R.id.fixedbill_name);
-        final EditText bill_account = EntryView.findViewById(R.id.bill_account);
-        final EditText bill_money = EntryView.findViewById(R.id.bill_money);
-        final Spinner fixedbill_count = EntryView.findViewById(R.id.fixedbill_count);
-        final EditText fixedbill_payment_day = EntryView.findViewById(R.id.fixedbill_payment_day);
-
-        final EditText bill_name = EntryView.findViewById(R.id.bill_name);
-        final Spinner bill_count = EntryView.findViewById(R.id.bill_count);
-        final EditText bill_payment_day = EntryView.findViewById(R.id.bill_payment_day);*/
 
         dialog.setPositiveButton("確認", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
+                //需判斷帳戶名稱是否重複 & 金額是否為空
+                ArrayList<String> ac_name = new ArrayList<String>();
+                settingCursor = db.query("tb_setting",null,null,null,null,null,null);
+                settingCursor.moveToFirst();
 
-                settingvalue.clear();
+                for(int i = 0;i<settingCursor.getCount();i++){              //把所有帳戶名稱存入陣列
+                    ac_name.add(settingCursor.getString(3));
+                    settingCursor.moveToNext();
+                }
 
-                switch (x) {
-                    case 1:  //設定帳戶
-                        settingvalue.put("帳戶名稱",account_name.getText().toString());
-                        settingvalue.put("金額",Float.parseFloat(account_money.getText().toString()));
-                        db.insert("tb_account", null, settingvalue);
-                        show_account_list();
-                        break;
-                    /*case 2:  //設定固定收入
-                        settingvalue.put("分類屬性","設定固定收入");
-                        settingvalue.put("描述",income_name.getText().toString());
-                        settingvalue.put("帳戶",income_account.getText().toString());
-                        settingvalue.put("金額",Float.parseFloat(income_money.getText().toString()));
-                        settingvalue.put("幾個月幾次",income_count.getSelectedItem().toString());
-                        settingvalue.put("日期",Integer.parseInt(payday.getText().toString()));
-                        db.insert("tb_setting", null, settingvalue);
-                        break;
-                    case 3:  //設定固定帳單
-                        settingvalue.put("分類屬性","設定固定帳單");
-                        settingvalue.put("描述",fixedbill_name.getText().toString());
-                        settingvalue.put("帳戶",bill_account.getText().toString());
-                        settingvalue.put("金額",Float.parseFloat(bill_money.getText().toString()));
-                        settingvalue.put("幾個月幾次",fixedbill_count.getSelectedItem().toString());
-                        settingvalue.put("日期",Integer.parseInt(fixedbill_payment_day.getText().toString()));
-                        db.insert("tb_setting", null, settingvalue);
-                        break;
-                    case 4:  //設定固定帳單
-                        settingvalue.put("分類屬性","設定固定帳單");
-                        settingvalue.put("描述",bill_name.getText().toString());
-                        settingvalue.put("幾個月幾次",bill_count.getSelectedItem().toString());
-                        settingvalue.put("日期",Integer.parseInt(bill_payment_day.getText().toString()));
-                        db.insert("tb_setting", null, settingvalue);
-                        break;*/
+                if(ac_name.indexOf(account_name.getText().toString()) != -1){
+                    show_toast("帳戶名稱重複!");
+                }else if(account_money.getText().toString().isEmpty()){
+                    show_toast("請輸入金額!");
+                }else{
+                    DH.insertData(account_name.getText().toString(),account_money.getText().toString());
+                    show_account_list();
                 }
             }
         });
@@ -236,18 +175,26 @@ public class Screen_Setting extends AppCompatActivity {
         dialog.show();
     }
     private void show_account_list(){
-        settingCursor = db.query("tb_account",new String[]{"_id","帳戶名稱","金額"},null,null,null,null,null);
+        settingCursor = db.query("tb_setting",null,null,null,null,null,null);
         List<Map<String,Object>> items = new ArrayList<Map<String,Object>>();
         settingCursor.moveToFirst();
         for(int i= 0;i< settingCursor.getCount();i++){
             Map<String,Object> item = new HashMap<String,Object>();
             item.put("_id",settingCursor.getString(0));
-            item.put("帳戶名稱",settingCursor.getString(1));
-            item.put("金額",settingCursor.getString(2));
+            item.put("Account",settingCursor.getString(3));
+            item.put("Money",settingCursor.getString(4));
             items.add(item);
             settingCursor.moveToNext();
         }
-        SimpleAdapter SA = new SimpleAdapter(this,items,R.layout.account_list_layout,new String[]{"_id","帳戶名稱","金額"},new int[]{R.id.account_list_id,R.id.account_list_name,R.id.account_list_money});
+        SimpleAdapter SA = new SimpleAdapter(this,items,R.layout.account_list_layout,new String[]{"_id","Account","Money"},new int[]{R.id.account_list_id,R.id.account_list_name,R.id.account_list_money});
         itlist_account.setAdapter(SA);
     }
+
+    private void show_toast(String text){
+        Toast toast = Toast.makeText(Screen_Setting.this,
+                text, Toast.LENGTH_LONG);
+        //顯示Toast
+        toast.show();
+    }
+
 }
